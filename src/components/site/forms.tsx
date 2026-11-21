@@ -6,6 +6,9 @@ function validEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+const WEB3FORMS_URL = "https://api.web3forms.com/submit";
+const WEB3FORMS_KEY = "365b2162-c0dc-45d4-a386-4fd183c0057c";
+
 function refCode(prefix: string) {
   return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
@@ -122,9 +125,11 @@ export function ContactForm({ service, setService }: { service: string; setServi
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [done, setDone] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const next: Record<string, string> = {};
     if (name.trim().length < 2) next.name = "Enter your full name.";
@@ -133,24 +138,46 @@ export function ContactForm({ service, setService }: { service: string; setServi
     if (!service) next.service = "Choose a service.";
     if (message.trim().length < 12) next.message = "Tell us a little more — at least a sentence.";
     setErrors(next);
+    setSubmitError("");
     if (Object.keys(next).length) return;
-    const id = refCode("ENQ");
-    const payload = { id, name, email, phone, service, message, at: new Date().toISOString() };
-    const existing = JSON.parse(localStorage.getItem("glsconxult-enquiries") || "[]") as unknown[];
-    localStorage.setItem("glsconxult-enquiries", JSON.stringify([payload, ...existing].slice(0, 30)));
-    setDone(id);
-    setMessage("");
+
+    setSending(true);
+    try {
+      const response = await fetch(WEB3FORMS_URL, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: new FormData(e.currentTarget),
+      });
+      const data = (await response.json().catch(() => null)) as { success?: boolean; message?: string } | null;
+      if (!response.ok || !data?.success) {
+        setSubmitError(data?.message || "We could not send your message. Please try again, or email us directly.");
+        return;
+      }
+      setSent(true);
+    } catch {
+      setSubmitError("We could not reach the mail service. Check your connection and try again.");
+    } finally {
+      setSending(false);
+    }
   }
 
-  if (done) {
+  if (sent) {
     return (
       <div className="rounded-3xl border border-line bg-card p-6" role="status">
         <p className="text-sm font-semibold tracking-widest text-brand-deep uppercase">Enquiry sent</p>
-        <h3 className="mt-2 font-display text-3xl font-medium">Thank you, {name.split(" ")[0]}</h3>
-        <p className="mt-2 text-muted">
-          Reference <span className="font-semibold text-ink">{done}</span>. We reply by email on business days. Nothing was sent to an outside server — this preview keeps your note on this device.
-        </p>
-        <button type="button" className="mt-5 min-h-12 rounded-full bg-ink px-5 font-semibold text-paper" onClick={() => setDone(null)}>
+        <h3 className="mt-2 font-display text-3xl font-medium">Thank you, {name.split(" ")[0] || "there"}</h3>
+        <p className="mt-2 text-muted">Your message is with the GLSCONXULT desk. We reply by email on business days.</p>
+        <button
+          type="button"
+          className="mt-5 min-h-12 rounded-full bg-ink px-5 font-semibold text-paper"
+          onClick={() => {
+            setSent(false);
+            setName("");
+            setEmail("");
+            setPhone("");
+            setMessage("");
+          }}
+        >
           Write another note
         </button>
       </div>
@@ -159,29 +186,39 @@ export function ContactForm({ service, setService }: { service: string; setServi
 
   return (
     <form id="enquiry-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
+      <input type="hidden" name="access_key" value={WEB3FORMS_KEY} />
+      <input type="hidden" name="subject" value={`GLSCONXULT enquiry — ${service || "General"}`} />
+      <input type="checkbox" name="botcheck" className="hidden" tabIndex={-1} autoComplete="off" />
       <Field label="Full name" htmlFor="ct-name" error={errors.name}>
-        <input id="ct-name" className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+        <input id="ct-name" name="name" className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Email" htmlFor="ct-email" error={errors.email}>
-          <input id="ct-email" type="email" inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input id="ct-email" name="email" type="email" inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label="Phone number" htmlFor="ct-phone" error={errors.phone}>
-          <input id="ct-phone" type="tel" inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input id="ct-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
         </Field>
       </div>
       <Field label="Selected service" htmlFor="ct-service" error={errors.service}>
-        <select id="ct-service" className={fieldClass} value={service} onChange={(e) => setService(e.target.value)}>
+        <select id="ct-service" name="service" className={fieldClass} value={service} onChange={(e) => setService(e.target.value)}>
           {SERVICES.map((s) => (
-            <option key={s}>{s}</option>
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
       </Field>
       <Field label="Message" htmlFor="ct-message" error={errors.message}>
-        <textarea id="ct-message" rows={5} className={`${fieldClass} min-h-32 resize-y`} value={message} onChange={(e) => setMessage(e.target.value)} />
+        <textarea id="ct-message" name="message" rows={5} className={`${fieldClass} min-h-32 resize-y`} value={message} onChange={(e) => setMessage(e.target.value)} />
       </Field>
-      <button type="submit" className="min-h-12 rounded-full bg-brand font-semibold text-ink">
-        Submit enquiry
+      {submitError ? (
+        <p className="rounded-2xl bg-paper px-4 py-3 text-sm text-ink" role="alert">
+          {submitError}
+        </p>
+      ) : null}
+      <button type="submit" disabled={sending} className="min-h-12 rounded-full bg-brand font-semibold text-ink disabled:opacity-60">
+        {sending ? "Sending…" : "Submit enquiry"}
       </button>
     </form>
   );
