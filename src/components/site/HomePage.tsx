@@ -305,7 +305,7 @@ export function HomePage() {
                 alt="Gloria Chinweike, Director and Educational consultant"
                 className="aspect-[4/3] w-full rounded-3xl object-cover"
               />
-              <figcaption className="mt-4">
+              <figcaption className="mt-4 text-center">
                 <p className="font-display text-2xl font-medium text-ink">Gloria Chinweike</p>
                 <p className="mt-1 text-sm font-medium text-brand-deep">Director/Educational consultant</p>
               </figcaption>
