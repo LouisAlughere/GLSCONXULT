@@ -299,11 +299,17 @@ export function HomePage() {
 
         <section id="counselling" className="bg-brand-soft py-16 lg:py-24">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 lg:grid-cols-2">
-            <img
-              src="/counselling.jpg"
-              alt="Educational consultant seated in front of an Educational Consulting sign"
-              className="aspect-[4/3] w-full rounded-3xl object-cover"
-            />
+            <figure>
+              <img
+                src="/counselling.jpg"
+                alt="Gloria Chinweike, Director and Educational consultant"
+                className="aspect-[4/3] w-full rounded-3xl object-cover"
+              />
+              <figcaption className="mt-4">
+                <p className="font-display text-2xl font-medium text-ink">Gloria Chinweike</p>
+                <p className="mt-1 text-sm font-medium text-brand-deep">Director/Educational consultant</p>
+              </figcaption>
+            </figure>
             <div>
               <SectionIntro
                 kicker="Educational counselling"
