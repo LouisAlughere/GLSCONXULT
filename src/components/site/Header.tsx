@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu, X, ChevronDown, Mail } from "lucide-react";
-import { MOBILE_NAV, PRIMARY_NAV, WHATSAPP_URL, type NavLink } from "@/data/content";
+import { MOBILE_NAV, PRIMARY_NAV, PHONE_DISPLAY, WHATSAPP_URL, type NavLink } from "@/data/content";
 import { EmailLink } from "./ui";
 
 export function Header({ onBook }: { onBook: () => void }) {
@@ -216,7 +216,7 @@ export function WhatsAppButton() {
           <path d="M20.5 3.5A11 11 0 0 0 2.1 17.8L1 23l5.3-1.1A11 11 0 0 0 12 22a11 11 0 0 0 8.5-18.5zM12 20.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-2-1.2 7.4 7.4 0 0 1-1.4-1.7c-.1-.2 0-.4.1-.5l.4-.5.2-.3c.1-.1 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2.9 2.4a9.2 9.2 0 0 0 3.5 3.1c1.3.6 1.6.5 2.1.4.4-.1 1.4-.6 1.6-1.1.2-.5.2-1 .1-1.1-.1-.2-.2-.2-.4-.3z" />
         </svg>
       </span>
-      WhatsApp
+      WhatsApp {PHONE_DISPLAY}
     </a>
   );
 }
