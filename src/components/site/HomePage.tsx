@@ -300,8 +300,8 @@ export function HomePage() {
         <section id="counselling" className="bg-brand-soft py-16 lg:py-24">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 lg:grid-cols-2">
             <img
-              src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1400&q=80"
-              alt="Advisor speaking with a student across a table"
+              src="/counselling.jpg"
+              alt="Educational consultant seated in front of an Educational Consulting sign"
               className="aspect-[4/3] w-full rounded-3xl object-cover"
             />
             <div>
