@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "GLSCONXULT — Global Study Consultancy",
+      "hasCanvas": false,
+      "bodyTextLen": 8363,
+      "bodyTextHash": "32ead0c11a1fc3b707695f6a7ed8722c1988639bc968e58836389d6d43b415e5",
+      "bodyTextPrefix": "September 2027 intake files are open. Book a strategy session GL",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "GLSCONXULT — Global Study Consultancy",
+      "hasCanvas": false,
+      "bodyTextLen": 8295,
+      "bodyTextHash": "8e99a7c4600ad59368d559ad6743376b503fd34c4c9e057aad8edde3d87728b7",
+      "bodyTextPrefix": "September 2027 intake files are open. Book a strategy session GL",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
