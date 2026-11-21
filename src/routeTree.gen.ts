@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PrivacyPolicyDothtmlRouteImport } from './routes/privacy-policy[.]html'
+import { Route as TermsOfServiceDothtmlRouteImport } from './routes/terms-of-service[.]html'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyPolicyDothtmlRoute = PrivacyPolicyDothtmlRouteImport.update({
+  id: '/privacy-policy.html',
+  path: '/privacy-policy.html',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsOfServiceDothtmlRoute = TermsOfServiceDothtmlRouteImport.update({
+  id: '/terms-of-service.html',
+  path: '/terms-of-service.html',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/privacy-policy.html': typeof PrivacyPolicyDothtmlRoute
+  '/terms-of-service.html': typeof TermsOfServiceDothtmlRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/privacy-policy.html': typeof PrivacyPolicyDothtmlRoute
+  '/terms-of-service.html': typeof TermsOfServiceDothtmlRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/privacy-policy.html': typeof PrivacyPolicyDothtmlRoute
+  '/terms-of-service.html': typeof TermsOfServiceDothtmlRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/privacy-policy.html' | '/terms-of-service.html'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/privacy-policy.html' | '/terms-of-service.html'
+  id: '__root__' | '/' | '/privacy-policy.html' | '/terms-of-service.html'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PrivacyPolicyDothtmlRoute: typeof PrivacyPolicyDothtmlRoute
+  TermsOfServiceDothtmlRoute: typeof TermsOfServiceDothtmlRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy-policy.html': {
+      id: '/privacy-policy.html'
+      path: '/privacy-policy.html'
+      fullPath: '/privacy-policy.html'
+      preLoaderRoute: typeof PrivacyPolicyDothtmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms-of-service.html': {
+      id: '/terms-of-service.html'
+      path: '/terms-of-service.html'
+      fullPath: '/terms-of-service.html'
+      preLoaderRoute: typeof TermsOfServiceDothtmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PrivacyPolicyDothtmlRoute: PrivacyPolicyDothtmlRoute,
+  TermsOfServiceDothtmlRoute: TermsOfServiceDothtmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -3,10 +3,6 @@ import { Menu, X, ChevronDown, Mail } from "lucide-react";
 import { MOBILE_NAV, PRIMARY_NAV, WHATSAPP_URL, type NavLink } from "@/data/content";
 import { EmailLink } from "./ui";
 
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
 export function Header({ onBook }: { onBook: () => void }) {
   const [open, setOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
@@ -22,7 +18,12 @@ export function Header({ onBook }: { onBook: () => void }) {
   function go(id: string) {
     setOpen(false);
     setServicesOpen(false);
-    scrollToId(id);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    window.location.assign(`/#${id}`);
   }
 
   return (
@@ -37,7 +38,7 @@ export function Header({ onBook }: { onBook: () => void }) {
       </div>
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <a
-          href="#home"
+          href="/#home"
           onClick={(e) => {
             e.preventDefault();
             go("home");
