@@ -117,7 +117,7 @@ export function EmailLink({ className, children }: { className?: string; childre
               role="menuitem"
               href={option.href}
               target={option.external ? "_blank" : undefined}
-              rel={option.external ? "noreferrer" : undefined}
+              rel={option.external ? "noopener noreferrer" : undefined}
               className="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-ink hover:bg-paper"
               onClick={() => setOpen(false)}
             >

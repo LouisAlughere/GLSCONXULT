@@ -2,6 +2,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
+import { CONTENT_SECURITY_POLICY } from "@/lib/security-policy";
 
 const APP_NAME = "GLSCONXULT — Global Study Consultancy";
 
@@ -17,6 +18,9 @@ export const Route = createRootRoute({
           "GLSCONXULT, Global Study Consultancy, helps students with admissions, visas, scholarships, flights, and accommodation for study abroad.",
       },
       { name: "theme-color", content: "#2EB5EA" },
+      { name: "referrer", content: "strict-origin-when-cross-origin" },
+      { httpEquiv: "X-Content-Type-Options", content: "nosniff" },
+      { httpEquiv: "Content-Security-Policy", content: CONTENT_SECURITY_POLICY },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

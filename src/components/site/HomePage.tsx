@@ -534,7 +534,7 @@ export function HomePage() {
               <div>
                 <dt className="text-muted">WhatsApp</dt>
                 <dd>
-                  <a className="font-semibold" href={WHATSAPP_URL} target="_blank" rel="noreferrer">
+                  <a className="font-semibold" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
                     {PHONE_DISPLAY}
                   </a>
                 </dd>

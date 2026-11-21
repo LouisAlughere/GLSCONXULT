@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { X, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { SERVICES, TIMES } from "@/data/content";
+import { COOLDOWN_MS, NAME_PATTERN, PHONE_PATTERN, sanitizeText } from "./form-guard";
 import { Field, fieldClass } from "./ui";
 
 type Step = "date" | "time" | "details" | "done";
@@ -60,9 +61,14 @@ export function BookingDialog({ open, onClose }: { open: boolean; onClose: () =>
   const [interest, setInterest] = useState<string>(SERVICES[0]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [locked, setLocked] = useState(false);
+  const trap = useRef<HTMLInputElement>(null);
+  const busy = useRef(false);
 
   useEffect(() => {
     if (!open) return;
+    busy.current = false;
+    setLocked(false);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -95,20 +101,32 @@ export function BookingDialog({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   function confirm() {
+    if (locked || busy.current) return;
+    if (trap.current && trap.current.value.trim()) return;
+    const cleanName = sanitizeText(name);
+    const cleanEmail = sanitizeText(email);
+    const cleanPhone = sanitizeText(phone);
+    const cleanInterest = sanitizeText(interest);
     const next: Record<string, string> = {};
-    if (name.trim().length < 2) next.name = "Enter your full name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = "Enter a valid email address.";
-    if (phone.replace(/\D/g, "").length < 8) next.phone = "Enter a phone number we can reach.";
+    if (!new RegExp(NAME_PATTERN).test(cleanName)) next.name = "Enter your full name using letters only.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) next.email = "Enter a valid email address.";
+    if (!new RegExp(PHONE_PATTERN).test(cleanPhone)) next.phone = "Enter a phone number we can reach.";
     setErrors(next);
     if (Object.keys(next).length || !date || !time) return;
+    // No card data is collected here. When checkout is added, redirect to the
+    // gateway's hosted page and use only a public key (Paystack pk_…,
+    // Flutterwave FLWPUBK_…, or Stripe pk_…). Never put a secret key in this file.
+    busy.current = true;
+    setLocked(true);
+    window.setTimeout(() => setLocked(false), COOLDOWN_MS);
     const record: Booking = {
       id: refCode(),
       date: iso,
       time,
-      name: name.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-      interest,
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      interest: cleanInterest,
     };
     const existing = JSON.parse(localStorage.getItem("glsconxult-bookings") || "[]") as Booking[];
     localStorage.setItem("glsconxult-bookings", JSON.stringify([record, ...existing].slice(0, 20)));
@@ -232,24 +250,36 @@ export function BookingDialog({ open, onClose }: { open: boolean; onClose: () =>
           ) : null}
 
           {step === "details" ? (
-            <div className="flex flex-col gap-3">
+            <form
+              className="flex flex-col gap-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                confirm();
+              }}
+            >
+              <input ref={trap} type="text" name="company_website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
               <Field label="Full name" htmlFor="bk-name" error={errors.name}>
-                <input id="bk-name" className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+                <input id="bk-name" name="name" required maxLength={80} pattern={NAME_PATTERN} className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
               </Field>
               <Field label="Email" htmlFor="bk-email" error={errors.email}>
-                <input id="bk-email" type="email" inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
+                <input id="bk-email" name="email" type="email" required maxLength={120} inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
               </Field>
               <Field label="Phone" htmlFor="bk-phone" error={errors.phone}>
-                <input id="bk-phone" type="tel" inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <input id="bk-phone" name="phone" type="tel" required maxLength={24} pattern={PHONE_PATTERN} inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
               </Field>
               <Field label="What should we prepare?" htmlFor="bk-interest">
-                <select id="bk-interest" className={fieldClass} value={interest} onChange={(e) => setInterest(e.target.value)}>
+                <select id="bk-interest" name="interest" required className={fieldClass} value={interest} onChange={(e) => setInterest(e.target.value)}>
                   {SERVICES.map((s) => (
-                    <option key={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </Field>
-            </div>
+              <button type="submit" disabled={locked} className="min-h-12 rounded-full bg-ink font-semibold text-paper disabled:opacity-60">
+                {locked ? "Please wait…" : "Confirm booking"}
+              </button>
+            </form>
           ) : null}
 
           {step === "done" && booking ? (
@@ -294,11 +324,6 @@ export function BookingDialog({ open, onClose }: { open: boolean; onClose: () =>
           {step === "time" ? (
             <button type="button" disabled={!time} onClick={() => setStep("details")} className="min-h-12 flex-1 rounded-full bg-brand font-semibold text-ink disabled:opacity-40">
               Your details
-            </button>
-          ) : null}
-          {step === "details" ? (
-            <button type="button" onClick={confirm} className="min-h-12 flex-1 rounded-full bg-ink font-semibold text-paper">
-              Confirm booking
             </button>
           ) : null}
           {step === "done" ? (

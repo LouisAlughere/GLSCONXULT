@@ -208,7 +208,7 @@ export function WhatsAppButton() {
     <a
       href={WHATSAPP_URL}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer"
       className="fixed right-4 bottom-4 z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-paper shadow-lg"
     >
       <span className="text-brand">

@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { CITIES, SERVICES } from "@/data/content";
+import { COOLDOWN_MS, NAME_PATTERN, PHONE_PATTERN, honeypotTripped, sanitizeText } from "./form-guard";
 import { Field, fieldClass } from "./ui";
 
 function validEmail(v: string) {
@@ -24,22 +25,55 @@ export function FlightForm() {
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [done, setDone] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
+  const lockTimer = useRef<number | null>(null);
+  const busy = useRef(false);
 
-  function submit(e: FormEvent) {
+  useEffect(() => {
+    return () => {
+      if (lockTimer.current) window.clearTimeout(lockTimer.current);
+    };
+  }, []);
+
+  function armCooldown() {
+    setLocked(true);
+    if (lockTimer.current) window.clearTimeout(lockTimer.current);
+    lockTimer.current = window.setTimeout(() => setLocked(false), COOLDOWN_MS);
+  }
+
+  function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (locked || busy.current) return;
+    if (honeypotTripped(e.currentTarget)) return;
+    const cleanDeparture = sanitizeText(departure);
+    const cleanName = sanitizeText(name);
+    const cleanEmail = sanitizeText(email);
+    const cleanPhone = sanitizeText(phone);
     const next: Record<string, string> = {};
-    if (departure.trim().length < 2) next.departure = "Enter a departure city.";
+    if (cleanDeparture.length < 2) next.departure = "Enter a departure city.";
     if (!arrival) next.arrival = "Choose an arrival destination.";
     if (!date) next.date = "Choose a preferred date.";
     if (trip === "round" && !ret) next.ret = "Choose a return date.";
     if (trip === "round" && date && ret && ret < date) next.ret = "Return must be on or after departure.";
-    if (name.trim().length < 2) next.name = "Enter your name.";
-    if (!validEmail(email)) next.email = "Enter a valid email.";
-    if (phone.replace(/\D/g, "").length < 8) next.phone = "Enter a reachable phone number.";
+    if (!new RegExp(NAME_PATTERN).test(cleanName)) next.name = "Enter your name using letters only.";
+    if (!validEmail(cleanEmail)) next.email = "Enter a valid email.";
+    if (!new RegExp(PHONE_PATTERN).test(cleanPhone)) next.phone = "Enter a reachable phone number.";
     setErrors(next);
     if (Object.keys(next).length) return;
+    busy.current = true;
+    armCooldown();
     const id = refCode("FLT");
-    const payload = { id, departure, arrival, date, ret: trip === "round" ? ret : "", trip, name, email, phone };
+    const payload = {
+      id,
+      departure: cleanDeparture,
+      arrival: sanitizeText(arrival),
+      date,
+      ret: trip === "round" ? ret : "",
+      trip,
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+    };
     const existing = JSON.parse(localStorage.getItem("glsconxult-flights") || "[]") as unknown[];
     localStorage.setItem("glsconxult-flights", JSON.stringify([payload, ...existing].slice(0, 20)));
     setDone(id);
@@ -61,7 +95,8 @@ export function FlightForm() {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl border border-line bg-card p-5 sm:p-6" noValidate>
+    <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl border border-line bg-card p-5 sm:p-6">
+      <input type="text" name="company_website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
       <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Trip type">
         {(
           [
@@ -83,37 +118,37 @@ export function FlightForm() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Departure city" htmlFor="fl-from" error={errors.departure}>
-          <input id="fl-from" className={fieldClass} autoComplete="address-level2" value={departure} onChange={(e) => setDeparture(e.target.value)} placeholder="Lagos, Accra, Delhi…" />
+          <input id="fl-from" name="departure" required maxLength={80} className={fieldClass} autoComplete="address-level2" value={departure} onChange={(e) => setDeparture(e.target.value)} placeholder="Lagos, Accra, Delhi…" />
         </Field>
         <Field label="Arrival destination" htmlFor="fl-to" error={errors.arrival}>
-          <select id="fl-to" className={fieldClass} value={arrival} onChange={(e) => setArrival(e.target.value)}>
+          <select id="fl-to" name="arrival" required className={fieldClass} value={arrival} onChange={(e) => setArrival(e.target.value)}>
             {CITIES.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
         </Field>
         <Field label="Preferred date" htmlFor="fl-date" error={errors.date}>
-          <input id="fl-date" type="date" className={fieldClass} value={date} onChange={(e) => setDate(e.target.value)} />
+          <input id="fl-date" name="date" type="date" required className={fieldClass} value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
         {trip === "round" ? (
           <Field label="Return date" htmlFor="fl-ret" error={errors.ret}>
-            <input id="fl-ret" type="date" className={fieldClass} value={ret} onChange={(e) => setRet(e.target.value)} />
+            <input id="fl-ret" name="return_date" type="date" required className={fieldClass} value={ret} onChange={(e) => setRet(e.target.value)} />
           </Field>
         ) : (
           <div className="hidden sm:block" />
         )}
         <Field label="Full name" htmlFor="fl-name" error={errors.name}>
-          <input id="fl-name" className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+          <input id="fl-name" name="name" required maxLength={80} pattern={NAME_PATTERN} className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Email" htmlFor="fl-email" error={errors.email}>
-          <input id="fl-email" type="email" inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input id="fl-email" name="email" type="email" required maxLength={120} inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label="Phone" htmlFor="fl-phone" error={errors.phone}>
-          <input id="fl-phone" type="tel" inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input id="fl-phone" name="phone" type="tel" required maxLength={24} pattern={PHONE_PATTERN} inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
         </Field>
       </div>
-      <button type="submit" className="min-h-12 rounded-full bg-brand font-semibold text-ink">
-        Submit flight enquiry
+      <button type="submit" disabled={locked} className="min-h-12 rounded-full bg-brand font-semibold text-ink disabled:opacity-60">
+        {locked ? "Please wait…" : "Submit flight enquiry"}
       </button>
     </form>
   );
@@ -128,34 +163,68 @@ export function ContactForm({ service, setService }: { service: string; setServi
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [locked, setLocked] = useState(false);
+  const lockTimer = useRef<number | null>(null);
+  const busy = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (lockTimer.current) window.clearTimeout(lockTimer.current);
+    };
+  }, []);
+
+  function armCooldown() {
+    setLocked(true);
+    if (lockTimer.current) window.clearTimeout(lockTimer.current);
+    lockTimer.current = window.setTimeout(() => setLocked(false), COOLDOWN_MS);
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (locked || busy.current) return;
+    if (honeypotTripped(e.currentTarget)) {
+      setSent(true);
+      return;
+    }
+    const cleanName = sanitizeText(name);
+    const cleanEmail = sanitizeText(email);
+    const cleanPhone = sanitizeText(phone);
+    const cleanMessage = sanitizeText(message);
+    const cleanService = sanitizeText(service);
     const next: Record<string, string> = {};
-    if (name.trim().length < 2) next.name = "Enter your full name.";
-    if (!validEmail(email)) next.email = "Enter a valid email.";
-    if (phone.replace(/\D/g, "").length < 8) next.phone = "Enter a phone number.";
-    if (!service) next.service = "Choose a service.";
-    if (message.trim().length < 12) next.message = "Tell us a little more — at least a sentence.";
+    if (!new RegExp(NAME_PATTERN).test(cleanName)) next.name = "Enter your full name using letters only.";
+    if (!validEmail(cleanEmail)) next.email = "Enter a valid email.";
+    if (!new RegExp(PHONE_PATTERN).test(cleanPhone)) next.phone = "Enter a phone number.";
+    if (!cleanService) next.service = "Choose a service.";
+    if (cleanMessage.length < 12) next.message = "Tell us a little more — at least a sentence.";
     setErrors(next);
     setSubmitError("");
     if (Object.keys(next).length) return;
 
+    busy.current = true;
+    armCooldown();
     setSending(true);
     try {
+      const body = new FormData(e.currentTarget);
+      for (const [key, value] of [...body.entries()]) {
+        if (typeof value === "string" && key !== "access_key") body.set(key, sanitizeText(value));
+      }
       const response = await fetch(WEB3FORMS_URL, {
         method: "POST",
         headers: { Accept: "application/json" },
-        body: new FormData(e.currentTarget),
+        body,
       });
       const data = (await response.json().catch(() => null)) as { success?: boolean; message?: string } | null;
       if (!response.ok || !data?.success) {
         setSubmitError(data?.message || "We could not send your message. Please try again, or email us directly.");
+        busy.current = false;
         return;
       }
+      setName(cleanName);
       setSent(true);
     } catch {
       setSubmitError("We could not reach the mail service. Check your connection and try again.");
+      busy.current = false;
     } finally {
       setSending(false);
     }
@@ -185,23 +254,24 @@ export function ContactForm({ service, setService }: { service: string; setServi
   }
 
   return (
-    <form id="enquiry-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
+    <form id="enquiry-form" onSubmit={submit} className="flex flex-col gap-4">
       <input type="hidden" name="access_key" value={WEB3FORMS_KEY} />
       <input type="hidden" name="subject" value={`GLSCONXULT enquiry — ${service || "General"}`} />
       <input type="checkbox" name="botcheck" className="hidden" tabIndex={-1} autoComplete="off" />
+      <input type="text" name="company_website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
       <Field label="Full name" htmlFor="ct-name" error={errors.name}>
-        <input id="ct-name" name="name" className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+        <input id="ct-name" name="name" required maxLength={80} pattern={NAME_PATTERN} className={fieldClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Email" htmlFor="ct-email" error={errors.email}>
-          <input id="ct-email" name="email" type="email" inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input id="ct-email" name="email" type="email" required maxLength={120} inputMode="email" autoComplete="email" className={fieldClass} value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label="Phone number" htmlFor="ct-phone" error={errors.phone}>
-          <input id="ct-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input id="ct-phone" name="phone" type="tel" required maxLength={24} pattern={PHONE_PATTERN} inputMode="tel" autoComplete="tel" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
         </Field>
       </div>
       <Field label="Selected service" htmlFor="ct-service" error={errors.service}>
-        <select id="ct-service" name="service" className={fieldClass} value={service} onChange={(e) => setService(e.target.value)}>
+        <select id="ct-service" name="service" required className={fieldClass} value={service} onChange={(e) => setService(e.target.value)}>
           {SERVICES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -210,15 +280,15 @@ export function ContactForm({ service, setService }: { service: string; setServi
         </select>
       </Field>
       <Field label="Message" htmlFor="ct-message" error={errors.message}>
-        <textarea id="ct-message" name="message" rows={5} className={`${fieldClass} min-h-32 resize-y`} value={message} onChange={(e) => setMessage(e.target.value)} />
+        <textarea id="ct-message" name="message" required minLength={12} maxLength={2000} rows={5} className={`${fieldClass} min-h-32 resize-y`} value={message} onChange={(e) => setMessage(e.target.value)} />
       </Field>
       {submitError ? (
         <p className="rounded-2xl bg-paper px-4 py-3 text-sm text-ink" role="alert">
           {submitError}
         </p>
       ) : null}
-      <button type="submit" disabled={sending} className="min-h-12 rounded-full bg-brand font-semibold text-ink disabled:opacity-60">
-        {sending ? "Sending…" : "Submit enquiry"}
+      <button type="submit" disabled={sending || locked} className="min-h-12 rounded-full bg-brand font-semibold text-ink disabled:opacity-60">
+        {sending ? "Sending…" : locked ? "Please wait…" : "Submit enquiry"}
       </button>
     </form>
   );

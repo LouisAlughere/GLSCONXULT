@@ -69,7 +69,7 @@ export function SiteFooter() {
                 <a
                   href={s.href}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label={s.label}
                   className="inline-flex size-11 items-center justify-center rounded-full bg-paper/10 text-paper hover:bg-brand hover:text-ink"
                 >
