@@ -2,7 +2,7 @@ export const EMAIL = "Glsconxult@outlook.com";
 export const PHONE_DISPLAY = "+44 7471 004953";
 export const PHONE_TEL = "+447471004953";
 export const INSTAGRAM_URL = "https://www.instagram.com/glx_consult?cplk=bHJpYnBrNzN5bGJv";
-export const WHATSAPP_URL = "https://wa.me/message/FFC5DIUF7IHXB1";
+export const WHATSAPP_URL = "https://wa.me/447471004953";
 
 
 export type NavLink = {
