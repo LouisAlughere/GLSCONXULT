@@ -314,7 +314,7 @@ export function HomePage() {
               <SectionIntro
                 kicker="Educational counselling"
                 title="Career advice that survives a visa interview."
-                lede="The course has to make sense to you and to the officer who reads the statement. We map subjects, work history, and the job you want in three years."
+                lede="The right university is the one that aligns with your academic profile, finances, aspirations, and circumstances. We map subjects, work history, and the job you want in three years."
               />
               <ul className="mt-6 space-y-3 text-ink">
                 {[
